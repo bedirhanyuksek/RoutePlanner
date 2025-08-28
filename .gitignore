@@ -1,0 +1,26 @@
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# React Native / Frontend
+android/
+ios/
+build/
+*.keystore
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OSRM data / Backend
+backend/osrm-data/
+
+# Logs
+logs/
+*.log
+
+# macOS / VS Code
+.DS_Store
+.vscode/
