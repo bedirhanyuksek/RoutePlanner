@@ -29,7 +29,7 @@ app.get('/all', async (req, res) => {
 app.get('/locations', async (req, res) => {
 
   try {
-    
+
     const result = await pool.query('SELECT DISTINCT ON (woonplaats) pp4, woonplaats,latitude,longitude FROM pp4 ORDER BY woonplaats, pp4')
     locations = result.rows
     res.json(result.rows);
@@ -42,13 +42,17 @@ app.get('/locations', async (req, res) => {
 });
 //OSRM'den mesafeleri hesaplatma
 const getDistance = async (lat1, lon1, lat2, lon2) => {
-  const url = `http://localhost:5001/route/v1/driving/${lon1},${lat1};${lon2},${lat2}?overview=false`;;
+  const url = `http://localhost:5001/route/v1/driving/${lon1},${lat1};${lon2},${lat2}?overview=full&geometries=geojson`;
   const response = await fetch(url);
   const data = await response.json();
   if (data.code === 'Ok') {
     const distance = data.routes[0].distance / 1000;
     const duration = data.routes[0].duration / 60;
-    return { distance, duration };
+    const geometry = data.routes[0].geometry.coordinates.map(coord => ({
+      latitude: coord[1],
+      longitude: coord[0],
+    }))
+    return { distance, duration, geometry };
   } else {
     throw new Error('OSRM API yanıtı geçersiz');
   }
@@ -61,6 +65,7 @@ let latestRoute = [];
 
 const algoritma = async (locs) => {
 
+  latestRoute = [];
   let totalRouteDistance = 0;
   let totalRouteDuration = 0;
 
@@ -78,14 +83,15 @@ const algoritma = async (locs) => {
           to: locs[j].woonplaats,
           distance: distanceInfo.distance,
           duration: distanceInfo.duration,
-
+          geometry: distanceInfo.geometry,
 
         };
         graph[j][i] = {
           from: locs[j].woonplaats,
           to: locs[i].woonplaats,
           distance: distanceInfo.distance,
-          duration: distanceInfo.duration
+          duration: distanceInfo.duration,
+          geometry: distanceInfo.geometry
         }
       } catch (err) {
         console.error(err.message);
@@ -158,11 +164,30 @@ const algoritma = async (locs) => {
 
   }
 
-  latestRoute = visited.map(index => locs[index]);
-  for (let i = 0; i < visited.length - 1; i++) {
-    totalRouteDistance += graph[visited[i]][visited[i + 1]].distance;
-    totalRouteDuration += graph[visited[i]][visited[i + 1]].duration;
+  for (let i = 0; i < visited.length; i++) {
+    const current = visited[i];
+    const next = visited[i + 1];
+
+    if (next !== undefined) {
+      latestRoute.push({
+        ...locs[current],
+        geometry: graph[current][next].geometry,
+      });
+
+      totalRouteDistance += graph[current][next].distance;
+      totalRouteDuration += graph[current][next].duration;
+    } else {
+      latestRoute.push({
+        ...locs[current],
+        geometry: [],
+      });
+    }
+
+
   }
+
+
+
 
   return { latestRoute, totalRouteDistance, totalRouteDuration };
 

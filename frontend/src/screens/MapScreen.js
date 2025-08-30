@@ -128,10 +128,7 @@ const MapScreen = ({ route }) => {
               >
                 {/* Çizilen rota */}
                 <Polyline
-                  coordinates={latestRoute.map((loc) => ({
-                    latitude: loc.latitude,
-                    longitude: loc.longitude,
-                  }))}
+                  coordinates={latestRoute.flatMap(loc => loc.geometry || [])}
                   strokeWidth={4}
                   strokeColor="blue"
                 />
