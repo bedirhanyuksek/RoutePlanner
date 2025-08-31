@@ -127,11 +127,19 @@ const MapScreen = ({ route }) => {
                 }}
               >
                 {/* Çizilen rota */}
-                <Polyline
-                  coordinates={latestRoute.flatMap(loc => loc.geometry || [])}
-                  strokeWidth={4}
-                  strokeColor="blue"
-                />
+                {latestRoute.map((loc, index) => {
+                  if (loc.geometry && loc.geometry.length > 0) {
+                    return (
+                      <Polyline
+                        key={index}
+                        coordinates={loc.geometry}
+                        strokeWidth={4}
+                        strokeColor="blue"
+                      />
+                    );
+                  }
+                  return null;
+                })}
 
                 {/* İşaretler */}
                 {latestRoute.map((loc, index) => {

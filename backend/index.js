@@ -183,7 +183,6 @@ const algoritma = async (locs) => {
       });
     }
 
-
   }
 
 
