@@ -111,7 +111,6 @@ const algoritma = async (locs) => {
   let totalRouteDistance = 0;
   let totalRouteDuration = 0;
 
-  //graph oluşturuldu
   const graph = new Array(locs.length).fill(0).map(() => new Array(locs.length).fill(Infinity));
   for (let i = 0; i < locs.length; i++) {
     for (let j = i + 1; j < locs.length; j++) {
@@ -239,9 +238,6 @@ const algoritma = async (locs) => {
 
 app.post('/route', async (req, res) => {
 
-
-
-
   try {
 
     const inComeLocations = req.body.locations;
@@ -283,6 +279,7 @@ app.post('/sync-route', async (req, res) => {
 
 });
 
+//Database'i temizlemek için
 app.delete('/user-locations', async (req, res) => {
   try {
     await pool.query('DELETE FROM user_locations');
@@ -292,9 +289,6 @@ app.delete('/user-locations', async (req, res) => {
     res.status(500).send('Sunucu hatası');
   }
 });
-
-
-
 
 
 app.listen(port, () => {

@@ -8,8 +8,6 @@ import * as XLSX from 'xlsx'
 import RNFS from 'react-native-fs'
 
 import Feather from 'react-native-vector-icons/Feather'
-import AntDesign from 'react-native-vector-icons/AntDesign'
-import FontAwesome from 'react-native-vector-icons/FontAwesome'
 import Ionicons from 'react-native-vector-icons/Ionicons'
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons'
 
@@ -23,7 +21,7 @@ const HomeScreen = ({ navigation }) => {
     const [selectedLocations, setSelectedLocations] = useState([]);
     const [latestRoute, setLatestRoute] = useState([]);
     const [totalDistance, setTotalDistance] = useState(null);
-    const [fileLocations, setFileLocations] = useState([]); // <-- yeni state
+    const [fileLocations, setFileLocations] = useState([]);
 
     const HOST = Platform.OS === 'android' ? '10.0.2.2' : 'localhost'
     const backend_url = `http://${HOST}:3000/user-locations`
@@ -45,9 +43,9 @@ const HomeScreen = ({ navigation }) => {
         }
     }
 
-    useEffect(()=>{
+    useEffect(() => {
         fetchLocations();
-    },[])
+    }, [])
 
 
     const [startShowList, setStartShowList] = useState(false);
@@ -106,13 +104,18 @@ const HomeScreen = ({ navigation }) => {
         setEndSearch('')
         setSelectedStart(null)
         setSelectedEnd([])
-
         setSelectedLocations([])
         setLatestRoute([])
+        setStartShowList(false)
+        setEndShowList(false)
     }
 
     const handleFileUpload = async () => {
         try {
+
+            setStartShowList(false)
+            setEndShowList(false)
+
             const res = await DocumentPicker.pick({ type: [DocumentPicker.types.allFiles] })
             if (!res || res.length === 0) return;
 
@@ -131,7 +134,7 @@ const HomeScreen = ({ navigation }) => {
                             latitude: parseFloat(loc.latitude),
                             longitude: parseFloat(loc.longitude)
                         }))
-                        setFileLocations(parsedLocations); // sadece fileLocations'a ata
+                        setFileLocations(parsedLocations);
                     }
                 })
             } else if (file.name.endsWith('.xls') || file.name.endsWith('.xlsx')) {
@@ -145,16 +148,16 @@ const HomeScreen = ({ navigation }) => {
                     latitude: parseFloat(loc.latitude),
                     longitude: parseFloat(loc.longitude)
                 }))
-                setFileLocations(parsedLocations) // sadece fileLocations'a ata
+                setFileLocations(parsedLocations)
             } else {
                 alert('Only CSV, XLS and XLSX files are supported!')
                 return;
             }
 
-            const response = await fetch(backend_upload_url,{
+            const response = await fetch(backend_upload_url, {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({locations: parsedLocations})
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ locations: parsedLocations })
             })
 
             const resData = await response.json()
@@ -164,7 +167,6 @@ const HomeScreen = ({ navigation }) => {
 
         } catch (err) {
             if (DocumentPicker.isCancel && DocumentPicker.isCancel(err)) {
-                // kullanıcı iptal ettiyse sessizce çık
                 return;
             }
             console.error(err)
@@ -211,10 +213,34 @@ const HomeScreen = ({ navigation }) => {
                                     if (startSearch) {
                                         const foundStartItem = locations.find((loc) => loc.name === startSearch)
                                         if (foundStartItem) {
-                                            setSelectedStart(foundStartItem)
-                                            setStartSearch('');
-                                            setSelectedLocations(prev => [...prev, foundStartItem]);
+                                            if (selectedStart && selectedStart.name === foundStartItem.name) {
+                                                alert('This starting point is already selected!');
+                                                setStartSearch('')
+                                                return;
+                                            }
+
+                                            setSelectedLocations(prev => {
+                                                const alreadyExists = prev.some(loc => loc.name === foundStartItem.name);
+                                                if (alreadyExists) {
+                                                    alert('This location is already in the list!');
+                                                    setStartSearch('')
+                                                    return prev;
+                                                }
+
+                                                const oldStartRemoved = selectedStart
+                                                    ? prev.filter(loc => loc.name !== selectedStart.name)
+                                                    : prev;
+
+                                                setSelectedStart(foundStartItem);
+                                                setStartSearch('');
+
+                                                return [foundStartItem, ...oldStartRemoved];
+                                            });
+
+
                                         }
+
+
                                     }
                                 }}
                                 style={styles.plusButton}
@@ -257,10 +283,13 @@ const HomeScreen = ({ navigation }) => {
                                 onPress={() => {
                                     if (endSearch) {
                                         const foundEndItem = locations.find((loc) => loc.name === endSearch)
-                                        if (foundEndItem) {
+                                        if (foundEndItem && !selectedLocations.some(loc => loc.name === foundEndItem.name)) {
                                             setSelectedEnd(prev => [...prev, foundEndItem]);
                                             setEndSearch('');
                                             setSelectedLocations(prev => [...prev, foundEndItem]);
+                                        } else {
+                                            alert(`${foundEndItem.name} is already selected!`)
+                                            setEndSearch('')
                                         }
                                     }
                                 }}
@@ -437,6 +466,7 @@ const styles = StyleSheet.create({
         borderTopWidth: 0,
         borderRadius: 10,
         backgroundColor: 'rgb(230,236,254)',
+        marginBottom: 10
     },
     listItem: {
         color: 'rgb(63,67,82)',
