@@ -1,6 +1,12 @@
-import { StyleSheet, Text, View, SafeAreaView, TextInput, FlatList, TouchableOpacity, ScrollView, Dimensions, Platform } from 'react-native'
+import { StyleSheet, Text, View, SafeAreaView, TextInput, FlatList, TouchableOpacity, ScrollView, Dimensions, Platform, Alert } from 'react-native'
 import React, { useState, useEffect } from 'react'
 import { useNavigation } from '@react-navigation/native';
+
+import DocumentPicker from 'react-native-document-picker'
+import Papa from 'papaparse'
+import * as XLSX from 'xlsx'
+import RNFS from 'react-native-fs'
+
 import Feather from 'react-native-vector-icons/Feather'
 import AntDesign from 'react-native-vector-icons/AntDesign'
 import FontAwesome from 'react-native-vector-icons/FontAwesome'
@@ -11,31 +17,38 @@ const { width: screenWidth } = Dimensions.get('window');
 
 const HomeScreen = ({ navigation }) => {
 
+    const [fileName, setFileName] = useState('')
+
     const [locations, setLocations] = useState([]);
     const [selectedLocations, setSelectedLocations] = useState([]);
     const [latestRoute, setLatestRoute] = useState([]);
     const [totalDistance, setTotalDistance] = useState(null);
+    const [fileLocations, setFileLocations] = useState([]); // <-- yeni state
 
     const HOST = Platform.OS === 'android' ? '10.0.2.2' : 'localhost'
-    const backend_url = `http://${HOST}:3000/locations`
+    const backend_url = `http://${HOST}:3000/user-locations`
+    const backend_upload_url = `http://${HOST}:3000/upload-locations`
 
     useEffect(() => {
         console.log("selectedLocations güncellendi:", selectedLocations);
     }, [selectedLocations]);
 
-    useEffect(() => {
-        const fetchLocations = async () => {
-            try {
-                const res = await fetch(backend_url);
-                const data = await res.json();
-                console.log("gelen data:", data)
-                setLocations(data)
-            } catch (error) {
-                console.error(error);
-            }
+
+    const fetchLocations = async () => {
+        try {
+            const res = await fetch(backend_url);
+            const data = await res.json();
+            console.log("gelen data:", data)
+            setLocations(data)
+        } catch (error) {
+            console.error(error);
         }
+    }
+
+    useEffect(()=>{
         fetchLocations();
-    }, [])
+    },[])
+
 
     const [startShowList, setStartShowList] = useState(false);
     const [endShowList, setEndShowList] = useState(false);
@@ -47,12 +60,12 @@ const HomeScreen = ({ navigation }) => {
 
     const startSelection = (item) => {
         setStartShowList(false);
-        setStartSearch(item.woonplaats);
+        setStartSearch(item.name);
     }
 
     const endSelection = (item) => {
         setEndShowList(false);
-        setEndSearch(item.woonplaats);
+        setEndSearch(item.name);
     }
 
     const backend_algoritma_url = `http://${HOST}:3000/route`
@@ -71,7 +84,7 @@ const HomeScreen = ({ navigation }) => {
             const totalDuration = data.totalDuration || null;
             setTotalDistance(totalDistance);
             setLatestRoute(route);
-            return {route,totalDistance,totalDuration};
+            return { route, totalDistance, totalDuration };
         } catch (error) {
             console.error(error);
             return [];
@@ -82,9 +95,9 @@ const HomeScreen = ({ navigation }) => {
         if (!selectedLocations || selectedLocations.length === 0) {
             return;
         }
-        const {route, totalDistance, totalDuration} = await send_locations();
+        const { route, totalDistance, totalDuration } = await send_locations();
         if (route && route.length > 0) {
-            navigation.navigate('MapScreen', { latestRoute: route,totalDistance: totalDistance, totalDuration:totalDuration })
+            navigation.navigate('MapScreen', { latestRoute: route, totalDistance: totalDistance, totalDuration: totalDuration })
         }
     }
 
@@ -93,10 +106,71 @@ const HomeScreen = ({ navigation }) => {
         setEndSearch('')
         setSelectedStart(null)
         setSelectedEnd([])
-        
+
         setSelectedLocations([])
         setLatestRoute([])
     }
+
+    const handleFileUpload = async () => {
+        try {
+            const res = await DocumentPicker.pick({ type: [DocumentPicker.types.allFiles] })
+            if (!res || res.length === 0) return;
+
+            const file = res[0];
+            setFileName(file.name);
+
+            let parsedLocations = [];
+
+            if (file.name.endsWith('.csv')) {
+                const text = await RNFS.readFile(file.uri, 'utf8');
+                Papa.parse(text, {
+                    header: true,
+                    complete: (results) => {
+                        parsedLocations = results.data.map(loc => ({
+                            name: loc.name,
+                            latitude: parseFloat(loc.latitude),
+                            longitude: parseFloat(loc.longitude)
+                        }))
+                        setFileLocations(parsedLocations); // sadece fileLocations'a ata
+                    }
+                })
+            } else if (file.name.endsWith('.xls') || file.name.endsWith('.xlsx')) {
+                const fileString = await RNFS.readFile(file.uri, 'base64');
+                const workbook = XLSX.read(fileString, { type: 'base64' })
+                const sheetName = workbook.SheetNames[0]
+                const sheet = workbook.Sheets[sheetName]
+                const data = XLSX.utils.sheet_to_json(sheet)
+                parsedLocations = data.map(loc => ({
+                    name: loc.name,
+                    latitude: parseFloat(loc.latitude),
+                    longitude: parseFloat(loc.longitude)
+                }))
+                setFileLocations(parsedLocations) // sadece fileLocations'a ata
+            } else {
+                alert('Only CSV, XLS and XLSX files are supported!')
+                return;
+            }
+
+            const response = await fetch(backend_upload_url,{
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({locations: parsedLocations})
+            })
+
+            const resData = await response.json()
+            console.log(resData)
+
+            fetchLocations()
+
+        } catch (err) {
+            if (DocumentPicker.isCancel && DocumentPicker.isCancel(err)) {
+                // kullanıcı iptal ettiyse sessizce çık
+                return;
+            }
+            console.error(err)
+        }
+    }
+
 
     return (
         <SafeAreaView style={styles.container}>
@@ -128,14 +202,14 @@ const HomeScreen = ({ navigation }) => {
                             <TextInput
                                 style={styles.textInput}
                                 placeholder='Select starting city...'
-                                onPressIn={() => {setStartShowList(true),setEndShowList(false)}}
+                                onPressIn={() => { setStartShowList(true), setEndShowList(false) }}
                                 value={startSearch}
                                 onChangeText={setStartSearch}
                             />
                             <TouchableOpacity
                                 onPress={() => {
                                     if (startSearch) {
-                                        const foundStartItem = locations.find((loc) => loc.woonplaats === startSearch)
+                                        const foundStartItem = locations.find((loc) => loc.name === startSearch)
                                         if (foundStartItem) {
                                             setSelectedStart(foundStartItem)
                                             setStartSearch('');
@@ -152,18 +226,18 @@ const HomeScreen = ({ navigation }) => {
                         {startShowList && (
                             <FlatList
                                 data={locations}
-                                keyExtractor={item => item.pp4.toString()}
+                                keyExtractor={item => item.id.toString()}
                                 style={styles.list}
                                 renderItem={({ item }) => (
                                     <TouchableOpacity onPress={() => startSelection(item)}>
-                                        <Text style={styles.listItem}>{item.woonplaats}</Text>
+                                        <Text style={styles.listItem}>{item.name}</Text>
                                     </TouchableOpacity>
                                 )}
                             />
                         )}
 
                         {selectedStart && (
-                            <Text style={styles.selectedStart}>{selectedStart.woonplaats}</Text>
+                            <Text style={styles.selectedStart}>{selectedStart.name}</Text>
                         )}
                         <View style={{ flexDirection: 'row' }}>
                             <Ionicons name="location-outline" size={18} color='black' />
@@ -175,14 +249,14 @@ const HomeScreen = ({ navigation }) => {
                             <TextInput
                                 style={styles.textInput}
                                 placeholder='Search for places...'
-                                onPressIn={() => {setEndShowList(true),setStartShowList(false)}}
+                                onPressIn={() => { setEndShowList(true), setStartShowList(false) }}
                                 value={endSearch}
                                 onChangeText={setEndSearch}
                             />
                             <TouchableOpacity
                                 onPress={() => {
                                     if (endSearch) {
-                                        const foundEndItem = locations.find((loc) => loc.woonplaats === endSearch)
+                                        const foundEndItem = locations.find((loc) => loc.name === endSearch)
                                         if (foundEndItem) {
                                             setSelectedEnd(prev => [...prev, foundEndItem]);
                                             setEndSearch('');
@@ -199,11 +273,11 @@ const HomeScreen = ({ navigation }) => {
                         {endShowList && (
                             <FlatList
                                 data={locations}
-                                keyExtractor={item => item.pp4.toString()}
+                                keyExtractor={item => item.id.toString()}
                                 style={styles.list}
                                 renderItem={({ item }) => (
                                     <TouchableOpacity onPress={() => endSelection(item)}>
-                                        <Text style={styles.listItem}>{item.woonplaats}</Text>
+                                        <Text style={styles.listItem}>{item.name}</Text>
                                     </TouchableOpacity>
                                 )}
                             />
@@ -219,12 +293,12 @@ const HomeScreen = ({ navigation }) => {
 
                         {selectedEnd && (
                             selectedEnd.map((select, index) => (
-                                <Text key={index} style={styles.selectedEnd}>{select.woonplaats}</Text>
+                                <Text key={index} style={styles.selectedEnd}>{select.name}</Text>
                             ))
                         )}
                     </View>
 
-                    <TouchableOpacity style={styles.resetButton} onPress={()=>resetAction()}>
+                    <TouchableOpacity style={styles.resetButton} onPress={() => resetAction()}>
                         <MaterialIcons name="restart-alt" size={20} color='rgb(229,110,40)' />
                         <Text style={styles.resetButtonText}>Reset</Text>
                     </TouchableOpacity>
@@ -238,15 +312,18 @@ const HomeScreen = ({ navigation }) => {
                     </View>
 
                     <View style={styles.fileDropZone}>
-                        <View style={{backgroundColor:'rgba(55,90,242,0.1)',borderRadius:30,padding:8}}>
+                        <View style={{ backgroundColor: 'rgba(55,90,242,0.1)', borderRadius: 30, padding: 8 }}>
                             <Feather name="upload" size={30} color='rgb(55,90,242)' />
 
                         </View>
 
                         <Text style={styles.fileDropText}>Supports .csv, .xls and xlsx files</Text>
-                        <TouchableOpacity style={styles.chooseFileButton}>
+                        <TouchableOpacity style={styles.chooseFileButton} onPress={handleFileUpload}>
                             <Text style={styles.chooseFileButtonText}>Choose File</Text>
                         </TouchableOpacity>
+                        {fileName && (
+                            <Text style={{ margin: 10, fontWeight: 'bold' }}>{fileName}</Text>
+                        )}
                     </View>
                 </View>
 
@@ -254,7 +331,7 @@ const HomeScreen = ({ navigation }) => {
                 <View style={{ height: 100 }} />
             </ScrollView>
 
-            
+
             <TouchableOpacity
                 style={styles.createRouteButton}
                 onPress={() => rotaOlustur()}
@@ -338,7 +415,7 @@ const styles = StyleSheet.create({
         marginBottom: 10,
         marginLeft: 10,
         paddingHorizontal: 15,
-        
+
     },
     plusButton: {
         borderRadius: 10,

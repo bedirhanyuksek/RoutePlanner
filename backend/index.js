@@ -40,6 +40,48 @@ app.get('/locations', async (req, res) => {
     res.status(500).send('Sunucu hatası');
   }
 });
+
+app.post('/upload-locations', async (req, res) => {
+
+  try{
+    const {locations} = req.body
+    if(!locations || !Array.isArray(locations)) {
+      return res.status(400).json({error:"Geçersiz format"});
+    }
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS user_locations(
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100),
+        latitude NUMERIC(11,8),
+        longitude NUMERIC(11,8)
+      )
+    `);
+
+    for (const loc of locations) {
+      await pool.query(
+        'INSERT INTO user_locations (name, latitude, longitude) VALUES ($1, $2, $3)',
+        [loc.name, loc.latitude, loc.longitude]
+      )
+    }
+    res.json({message: "Lokasyonlar başarıyla yüklendi"})
+  }catch (err){
+    console.error(err.message)
+    res.status(500).send("Sunucu hatası");
+  }
+
+})
+
+app.get('/user-locations', async (req, res) => {
+  try{
+    const result = await pool.query('SELECT * FROM user_locations')
+    res.json(result.rows)
+  }catch (err){
+    console.error(err.message)
+    res.status(500).send("Sunucu hatası")
+  }
+})
+
 //OSRM'den mesafeleri hesaplatma
 const getDistance = async (lat1, lon1, lat2, lon2) => {
   const url = `http://localhost:5001/route/v1/driving/${lon1},${lat1};${lon2},${lat2}?overview=full&geometries=geojson`;
@@ -239,6 +281,16 @@ app.post('/sync-route', async (req, res) => {
     res.status(500).send('sunucu hatası');
   }
 
+});
+
+app.delete('/user-locations', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM user_locations');
+    res.json({ message: 'Tüm kullanıcı lokasyonları silindi' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Sunucu hatası');
+  }
 });
 
 

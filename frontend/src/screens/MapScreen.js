@@ -43,7 +43,7 @@ const MapScreen = ({ route }) => {
       <View style={{ backgroundColor: borderColor, borderRadius: 15, padding: 10, margin: 5 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <Ionicons name={iconName} size={20} color='white' />
-          <Text style={{ color: 'white', fontSize: 16 }}>{item.woonplaats}</Text>
+          <Text style={{ color: 'white', fontSize: 16 }}>{item.name}</Text>
 
         </View>
 
@@ -168,7 +168,7 @@ const MapScreen = ({ route }) => {
                           }}
                         >
                           <Text style={{ color: pinColor, fontWeight: "bold", fontSize: 12 }}>
-                            {index + 1}. {loc.woonplaats}
+                            {index + 1}. {loc.name}
                           </Text>
                         </View>
 
