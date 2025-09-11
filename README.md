@@ -9,7 +9,7 @@ CSV/XLS(X) dosyalarından konumları ve koordinatları alarak PostgreSQL veritab
 - Konum verilerini PostgreSQL veritabanına kaydetme
 - Konumları liste halinde görüntüleme
 - Seçilen konumları backend’e gönderme
-- Farthest Insertion algoritması ile rota optimizasyonu
+- Farthest Insertion algoritması ile rota optimizasyonu yapma
 - OSRM (Docker) ile gerçek yol mesafelerini kullanma
 - Rotaları React Native üzerinde görselleştirme
 
@@ -44,7 +44,7 @@ cd RoutePlanner
 cd backend
 npm install
 ```
-.env.example dosyasını kopyalayarak .env oluşturun ve kendi PostgreSQL bilgilerinizi giriniz
+.env.example dosyasını kopyalayarak .env oluşturun ve kendi PostgreSQL bilgilerinizi girin
 
 macOS:
 ```bash
@@ -57,11 +57,11 @@ copy ..\examples\.env.example .env
 
 .env içeriği örnek:
 
--DB_HOST=localhost
--DB_PORT=5432
--DB_USER=postgres
--DB_PASSWORD=yourpassword
--DB_NAME=routeplanner
+- DB_HOST=localhost
+- DB_PORT=5432
+- DB_USER=postgres
+- DB_PASSWORD=yourpassword
+- DB_NAME=routeplanner
 
 Ardından backend'i başlatın:
 ```bash
