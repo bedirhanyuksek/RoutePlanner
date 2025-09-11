@@ -3,6 +3,15 @@
 CSV/XLS(X) dosyalarından konumları ve koordinatları alarak PostgreSQL veritabanına kaydeden, ardından **OSRM (Docker)** ve **Farthest Insertion** algoritması ile en uygun rotayı hesaplayan bir full-stack rota planlama uygulamasıdır.
 
 ---
+## Uygulama Görselleri
+- Ana Ekran
+![Ana Ekran](https://imgur.com/aLoRz1P)
+![Ana Ekran](https://imgur.com/a/vvfaN9u)
+
+- Harita Ekranı
+![Harita Ekranı](https://imgur.com/4COU552)
+
+---
 
 ## Özellikler
 - CSV/XLS(X) dosyalarından konum ve koordinatları içe aktarma
