@@ -44,7 +44,8 @@ cd RoutePlanner
 cd backend
 npm install
 ```
-.env.example dosyasını kopyalayarak .env oluşturun ve kendi PostgreSQL bilgilerinizi girin:
+.env.example dosyasını kopyalayarak .env oluşturun ve kendi PostgreSQL bilgilerinizi giriniz
+
 macOS:
 ```bash
 cp examples/.env.example backend/.env
@@ -55,11 +56,12 @@ copy ..\examples\.env.example .env
 ```
 
 .env içeriği örnek:
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=postgres
-DB_PASSWORD=yourpassword
-DB_NAME=routeplanner
+
+-DB_HOST=localhost
+-DB_PORT=5432
+-DB_USER=postgres
+-DB_PASSWORD=yourpassword
+-DB_NAME=routeplanner
 
 Ardından backend'i başlatın:
 ```bash
@@ -87,7 +89,7 @@ Adımlar
 ```bash
 mkdir osrm-data && cd osrm-data
 ```
-# .osm.pbf dosyanızı buraya koyun
+### - .osm.pbf dosyanızı buraya koyun
 ```bash
 docker run -t -v "${PWD}:/data" osrm/osrm-backend osrm-extract -p /opt/car.lua /data/netherlands-latest.osm.pbf
 docker run -t -v "${PWD}:/data" osrm/osrm-backend osrm-partition /data/netherlands-latest.osrm
