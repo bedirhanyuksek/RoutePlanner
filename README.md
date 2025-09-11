@@ -5,11 +5,11 @@ CSV/XLS(X) dosyalarından konumları ve koordinatları alarak PostgreSQL veritab
 ---
 ## Uygulama Görselleri
 - Ana Ekran
-![Ana Ekran](https://i.imgur.com/aLoRz1P.png)
-![Ana Ekran](https://i.imgur.com/YA2OaLJ.png)
+<img src="https://i.imgur.com/aLoRz1P.png" alt="Ana Ekran 1" width="350"/>
+<img src="https://i.imgur.com/YA2OaLJ.png" alt="Ana Ekran 2" width="350"/>
 
 - Harita Ekranı
-![Harita Ekranı](https://i.imgur.com/4COU552.png)
+<img src="https://i.imgur.com/4COU552.png" alt="Harita Ekranı" width="350"/>
 
 ---
 
